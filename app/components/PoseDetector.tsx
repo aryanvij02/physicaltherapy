@@ -75,6 +75,7 @@ export default function PoseDetector() {
   }, [poseLandmarker, videoRef.current]);
 
     const processResults = (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) => {
+        const excludedLandmarks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 20, 22, 21, 15, 19]; // Example indices for unwanted landmarks
         if (!results || !ctx || !canvasRef.current) return;
 
         ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
@@ -82,7 +83,7 @@ export default function PoseDetector() {
         [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
         [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
         ], {color: 'aqua', lineWidth: 2});
-        drawLandmarks(ctx, results.landmarks[0], { color: 'green', radius: 1 });
+        drawLandmarks(ctx, results.landmarks[0].filter((_, index) => !excludedLandmarks.includes(index)), { color: 'green', radius: 1 });
     };
     
     const handleMetadataLoaded = () => {
