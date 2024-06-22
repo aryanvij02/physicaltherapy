@@ -48,10 +48,13 @@ const PoseDetector = () => {
   }, []);
 
   useEffect(() => {
-    if (poseLandmarker && videoRef.current && canvasRef.current) {
+    console.log('entered use effect')
+    console.log("these", poseLandmarker, videoRef.current, canvasRef.current)
+
+    if (poseLandmarker && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas!.getContext('2d');
       let lastVideoTime = -1;
 
       const renderLoop = async function () {
@@ -93,8 +96,8 @@ const PoseDetector = () => {
 
   return (
     <div style={{ position: 'relative' }}>
-      <video ref={videoRef} width="640" height="480" autoPlay playsInline style={{ position: 'absolute', top: 0, left: 0 }} />
-      {/* <canvas ref={canvasRef} width="640" height="480" style={{ position: 'absolute', top: 0, left: 0 }} /> */}
+      <video ref={videoRef} width="640" height="480" autoPlay playsInline style={{ position: 'absolute', top: 0, left: 0, zIndex:1 }} />
+      <canvas ref={canvasRef} width="640" height="480" style={{ position: 'absolute', top: 0, left: 0, zIndex:0 }} />
     </div>
   );
 };
