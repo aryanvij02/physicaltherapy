@@ -1,12 +1,15 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
+import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 
-const PoseDetector = () => {
+export default function PoseDetector() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [videoObtained, setVideoObtained] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 700, height: 1000 }); // Default dimensions
+
 
   useEffect(() => {
     if (videoObtained) {
@@ -25,7 +28,6 @@ const PoseDetector = () => {
 
         setPoseLandmarker(poseLandmarker);
       };
-
       initializePoseLandmarker();
     }
   }, [videoObtained]);
@@ -36,6 +38,7 @@ const PoseDetector = () => {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
+          console.log('Video stream attached:', videoRef.current.srcObject);
           setVideoObtained(true);
           console.log('Video obtained')
         }
@@ -71,38 +74,50 @@ const PoseDetector = () => {
     }
   }, [poseLandmarker, videoRef.current]);
 
-  const processResults = function (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) {
-    if (!results || !ctx || !video) return;
-    if (canvasRef.current){
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear previous drawings
-        ctx.strokeStyle = 'aqua';
-        ctx.lineWidth = 2;
+    const processResults = (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) => {
+        if (!results || !ctx || !canvasRef.current) return;
 
-        results.landmarks.forEach(landmarkList => {
-            landmarkList.forEach(landmark => {
-            // Calculate the actual x and y coordinates based on the canvas size
-            const x = landmark.x * canvasRef.current!.width;
-            const y = landmark.y * canvasRef.current!.height;
-        
-            // Draw a circle at the landmark position
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fill();
-            });
-      });
-    }
+        ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+        drawConnectors(ctx, results.landmarks[0], [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+        [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
+        ], {color: 'aqua', lineWidth: 2});
+        drawLandmarks(ctx, results.landmarks[0], { color: 'green', radius: 1 });
+    };
     
-  };
+    const handleMetadataLoaded = () => {
+        if (videoRef.current) {
+          setDimensions({
+            width: videoRef.current.videoWidth,
+            height: videoRef.current.videoHeight
+          });
+        }
+    };  
+  
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <video ref={videoRef} width="640" height="480" autoPlay playsInline style={{ position: 'absolute', top: 0, left: 0, zIndex:1 }} />
-      <canvas ref={canvasRef} width="640" height="480" style={{ position: 'absolute', top: 0, left: 0, zIndex:0 }} />
-    </div>
-  );
+    return (
+        <div className={`relative w-[${dimensions.width}px] h-[${dimensions.height}px] overflow-hidden`}>
+          <video
+            ref={videoRef}
+            className="absolute top-0 left-0 w-full h-full z-10"
+            autoPlay
+            playsInline
+            onLoadedMetadata={handleMetadataLoaded}
+          >
+            <p className="flex justify-center items-center text-white text-2xl h-full">
+              Your browser does not support the video tag.
+            </p>
+          </video>
+          <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0 w-full h-full z-20"
+          />
+        </div>
+      );
+      
+      
 };
 
 
-export default PoseDetector;
 
 
