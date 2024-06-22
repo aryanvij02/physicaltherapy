@@ -3,7 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 
-export default function PoseDetector() {
+interface PoseDetectorProps {
+    exercise: string;
+  }
+
+export default function PoseDetector(props: PoseDetectorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
