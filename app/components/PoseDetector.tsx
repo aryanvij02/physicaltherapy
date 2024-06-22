@@ -38,9 +38,7 @@ export default function PoseDetector() {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
-          console.log('Video stream attached:', videoRef.current.srcObject);
           setVideoObtained(true);
-          console.log('Video obtained')
         }
       } catch (error) {
         console.error('Error accessing the media devices.', error);
@@ -51,9 +49,6 @@ export default function PoseDetector() {
   }, []);
 
   useEffect(() => {
-    console.log('entered use effect')
-    console.log("these", poseLandmarker, videoRef.current, canvasRef.current)
-
     if (poseLandmarker && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -63,28 +58,44 @@ export default function PoseDetector() {
       const renderLoop = async function () {
         if (video.currentTime !== lastVideoTime) {
           const poseLandmarkerResult = await poseLandmarker.detectForVideo(video, performance.now());
-          processResults(poseLandmarkerResult, ctx!, video);
+          drawOnVideoFeed(poseLandmarkerResult, ctx!, video);
           lastVideoTime = video.currentTime;
         }
         requestAnimationFrame(renderLoop);
       };
 
       video.play().then(renderLoop).catch(err => console.error('Error playing video:', err));
-      console.log('Video playing')
     }
   }, [poseLandmarker, videoRef.current]);
 
-    const processResults = (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) => {
+    function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement,  ) {
         const excludedLandmarks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 20, 22, 21, 15, 19]; // Example indices for unwanted landmarks
         if (!results || !ctx || !canvasRef.current) return;
-
         ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
         drawConnectors(ctx, results.landmarks[0], [
         [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
         [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
         ], {color: 'aqua', lineWidth: 2});
         drawLandmarks(ctx, results.landmarks[0].filter((_, index) => !excludedLandmarks.includes(index)), { color: 'green', radius: 1 });
+
+
+        console.log("These are the results", results.landmarks[0])
     };
+
+
+    function processSquatResults(results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) {
+        const excludedLandmarks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 20, 22, 21, 15, 19]; // Example indices for unwanted landmarks
+        if (!results || !ctx || !canvasRef.current) return;
+        ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+        drawConnectors(ctx, results.landmarks[0], [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+        [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
+        ], {color: 'aqua', lineWidth: 2});
+        drawLandmarks(ctx, results.landmarks[0].filter((_, index) => !excludedLandmarks.includes(index)), { color: 'green', radius: 1 });
+
+
+        console.log("These are the results", results.landmarks[0])
+    }
     
     const handleMetadataLoaded = () => {
         if (videoRef.current) {
