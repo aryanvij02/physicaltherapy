@@ -1,11 +1,20 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
-import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
+import { drawConnectors, drawLandmarks, NormalizedLandmark } from '@mediapipe/drawing_utils';
+import { bodyPartNames } from '@/utils/types';
 
 interface PoseDetectorProps {
     exercise: string;
   }
+
+interface LandmarkStuff {
+    name: string;
+    x: number;
+    y: number;
+    z: number;
+    visibility: number;
+}
 
 export default function PoseDetector(props: PoseDetectorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -13,7 +22,30 @@ export default function PoseDetector(props: PoseDetectorProps) {
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [videoObtained, setVideoObtained] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 700, height: 1000 }); // Default dimensions
+  const [includedLandmarks, setIncludedLandmarks] = useState<number[]>([])
+  const [allLandmarks, setAllLandmarks] = useState<LandmarkStuff[]>();
+//   bodyParts
 
+  useEffect(() => {
+    if (props.exercise === "Squat") {
+        setIncludedLandmarks([11, 12, 23, 24, 26, 25, 28, 27])
+    }
+    ///Include more examples for different exercises
+
+    const getVideo = async () => {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          setVideoObtained(true);
+        }
+      } catch (error) {
+        console.error('Error accessing the media devices.', error);
+      }
+    };
+    getVideo();
+
+  }, []);
 
   useEffect(() => {
     if (videoObtained) {
@@ -36,21 +68,6 @@ export default function PoseDetector(props: PoseDetectorProps) {
     }
   }, [videoObtained]);
 
-  useEffect(() => {
-    const getVideo = async () => {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          setVideoObtained(true);
-        }
-      } catch (error) {
-        console.error('Error accessing the media devices.', error);
-      }
-    };
-
-    getVideo();
-  }, []);
 
   useEffect(() => {
     if (poseLandmarker && videoRef.current) {
@@ -72,41 +89,49 @@ export default function PoseDetector(props: PoseDetectorProps) {
     }
   }, [poseLandmarker, videoRef.current]);
 
-    function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement,  ) {
-        const excludedLandmarks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 20, 22, 21, 15, 19]; // Example indices for unwanted landmarks
-        if (!results || !ctx || !canvasRef.current) return;
-        ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
-        drawConnectors(ctx, results.landmarks[0], [
-        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
-        [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
-        ], {color: 'aqua', lineWidth: 2});
-        drawLandmarks(ctx, results.landmarks[0].filter((_, index) => !excludedLandmarks.includes(index)), { color: 'green', radius: 1 });
+  useEffect(() => {
+
+  })
 
 
-        console.log("These are the results", results.landmarks[0])
-    };
+function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement,  ) {
+    const temporaryLandmarks: LandmarkStuff[] = [];
 
-
-    function processSquatResults(results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement) {
-        const excludedLandmarks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 20, 22, 21, 15, 19]; // Example indices for unwanted landmarks
-        if (!results || !ctx || !canvasRef.current) return;
-        ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
-        drawConnectors(ctx, results.landmarks[0], [
-        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
-        [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
-        ], {color: 'aqua', lineWidth: 2});
-        drawLandmarks(ctx, results.landmarks[0].filter((_, index) => !excludedLandmarks.includes(index)), { color: 'green', radius: 1 });
-
-
-        console.log("These are the results", results.landmarks[0])
+    for (let i = 0; i < results.landmarks[0].length; i++) {
+        const current = {
+            name: bodyPartNames[i],
+            x: results.landmarks[0][i].x,
+            y: results.landmarks[0][i].y,
+            z: results.landmarks[0][i].z,
+            visibility: results.landmarks[0][i].visibility
+        }
+        temporaryLandmarks.push(current)
     }
-    
+    setAllLandmarks(temporaryLandmarks)
+
+    results.landmarks[0]
+    if (!results || !ctx || !canvasRef.current) return;
+    ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+    drawConnectors(ctx, results.landmarks[0], [
+    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+    [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
+    ], {color: 'aqua', lineWidth: 2});
+
+    if (results.landmarks[0]) {
+        const filteredLandmarks = results.landmarks[0].filter((_, index) => includedLandmarks.includes(index))
+        
+        drawLandmarks(ctx, filteredLandmarks, { color: 'green', radius: 1 });
+        console.log("These are the results", filteredLandmarks)
+
+    }
+};
+
     const handleMetadataLoaded = () => {
         if (videoRef.current) {
-          setDimensions({
+            setDimensions({
             width: videoRef.current.videoWidth,
             height: videoRef.current.videoHeight
-          });
+            });
         }
     };  
   
