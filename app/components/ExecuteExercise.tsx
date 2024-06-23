@@ -2,12 +2,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import { drawConnectors, drawLandmarks, NormalizedLandmark } from '@mediapipe/drawing_utils';
-import { bodyPartNames, SquatData } from '@/utils/types';
+import { bodyPartNames, ElbowDataList, SquatData } from '@/utils/types';
 import { calculateArmExtension, calculateSquatAngle } from '@/utils/calculateangle';
+import { Button } from '@/components/ui/button';
 interface PoseDetectorProps {
     intervalPerSetTrain: string
     reps: string
     sets: string
+    setCurrentState: React.Dispatch<React.SetStateAction<string>>;
+    thresholds: ElbowDataList[]  
   }
 interface LandmarkStuff {
     name: string;
@@ -17,7 +20,8 @@ interface LandmarkStuff {
     visibility: number;
 }
 
-export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDetectorProps) {
+export default function PoseDetector({thresholds, intervalPerSetTrain, reps, sets, setCurrentState}: PoseDetectorProps) {
+    const initialReps = reps
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
@@ -33,6 +37,12 @@ export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDete
 
   const [informationText, setInformationText] = useState<string>("")
 
+  const [leftElbowAngle, setLeftElbowAngle] = useState(0);
+    const [rightElbowAngle, setRightElbowAngle] = useState(0);
+    const [isAtMax, setIsAtMax] = useState({ left: false, right: false });
+    const [isAtMin, setIsAtMin] = useState({ left: false, right: false });
+    const [repCount, setRepCount] = useState(0);
+
   // Effect to start the countdown trigger after 3 seconds
   useEffect(() => {
     const delayTimer = setTimeout(() => {
@@ -42,30 +52,10 @@ export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDete
     return () => clearTimeout(delayTimer);
   }, []);
 
-  // Countdown logic with the actual countdown delay
   useEffect(() => {
-    if (!startCountdown) return; // Don't start countdown until the trigger is set
+    //Brute forcing it to always be for arm extension!
+    setIncludedLandmarks([15, 13, 11, 12, 14, 16, 23, 24])
 
-    if (countdown > 0) {
-      const countdownTimer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(countdownTimer);
-    } else {
-      // Action to perform when countdown hits 0
-      console.log('Countdown completed.');
-      setCurrentState('summary'); // Assuming this function changes some state
-    }
-  }, [countdown, startCountdown]);
-
-  useEffect(() => {
-    if (exercise === "Squat") {
-        setIncludedLandmarks([11, 12, 23, 24, 26, 25, 28, 27])
-    } else if (exercise === "Arm Extension") {
-      setIncludedLandmarks([15, 13, 11, 12, 14, 16, 23, 24])
-    }
-
-    ///Include more examples for different exercises
     const getVideo = async () => {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -100,7 +90,6 @@ export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDete
   }, [videoObtained]);
 
   useEffect(() => {
-
     if (poseLandmarker && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -134,33 +123,64 @@ export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDete
 
   ////
   useEffect(() => {
-    async function angle() {
-          if (poseLandmarker && videoRef.current) {
-            const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
-            if (exercise == "Squat" && reps != "0") {
-              const currPose = calculateSquatAngle(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
-              if (currPose) {
-                setTrainingData([...trainingData, currPose]);
+    // async function angle() {
+    //       if (poseLandmarker && videoRef.current) {
+    //         const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
+            
+    //         //Once again only used for arm extension
+    //         const currPose = calculateArmExtension(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+    //           if (currPose) {
+    //             console.log("Current Pose", currPose)
+    //             console.log('left', currPose.leftElbow)
+    //         }
+    //       }
+    //     }
 
-              }
-            } else if (exercise == "Arm Extension" && reps != "0") {
-              const currPose = calculateArmExtension(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
-              if (currPose) {
-                setTrainingData([...trainingData, currPose]);
-            }
+    async function angle() {
+        if (poseLandmarker && videoRef.current) {
+          const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
+          
+          const currPose = await calculateArmExtension(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+          if (currPose) {
+            console.log("Current Pose", currPose)
+            console.log('left', currPose.leftElbow)
+            console.log("threshold", thresholds)
+            
+            setLeftElbowAngle(currPose.leftElbow);
+            setRightElbowAngle(currPose.rightElbow);
+
+
+      
+            // Check if both elbows are at max
+            // console.log("Thres", thresholds[0]['leftElbow'].max)
+                // if (currPose.leftElbow >= thresholds[0][0]['leftElbow'].max && currPose.rightElbow >= thresholds[0][0].rightElbow.max) {
+                //     setIsAtMax({ left: true, right: true });
+                //     setIsAtMin({ left: false, right: false });
+                //   }
+            
+                //   // Check if both elbows are at min after being at max
+                //   if (isAtMax.left && isAtMax.right &&
+                //       currPose.leftElbow <= thresholds[0][0].leftElbow.min && currPose.rightElbow <= thresholds[0][0].rightElbow.min) {
+                //     setIsAtMin({ left: true, right: true });
+                //     setRepCount(prevCount => prevCount + 1);
+                //     setIsAtMax({ left: false, right: false });
+                //   }
+
+            
           }
         }
       }
-    if (Number(reps) >= 0 && Number(reps) < Number(startRep)) {
+      
+    // if (Number(reps) >= 0 && Number(reps) < Number(initialReps)) {
       angle()
-    }
+    // }
     
   }, [videoRef.current?.currentTime])
 
 
   useEffect(() => {
     if (reps ==  "0") {
-      setCurrentState('savetrainingdata')
+    //   setCurrentState('savetrainingdata')
     }
   }, [reps])
 
@@ -214,8 +234,13 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             />
           </div>
           <div>
-            <h1>{Number(reps) == Number(startRep) ? "Align yourself, this is a trial" : `This is start rep ${Number(startRep) - Number(reps)} rep`}</h1>
+            <h1>{Number(reps) == Number(initialReps) ? "Align yourself, this is a trial" : `This is start rep ${Number(initialReps) - Number(reps)} rep`}</h1>
         </div>
+        <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white p-2 rounded">
+  Reps: {repCount}
+</div>
+<Button className="mt-24" onClick={() => setCurrentState('audio')}>Next</Button>
+
       </div>
       );
 };

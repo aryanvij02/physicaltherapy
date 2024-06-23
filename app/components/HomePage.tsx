@@ -10,6 +10,9 @@ type MyComponentProps = {
     exercises: string[]
     setIntervalPerSetTrain: React.Dispatch<React.SetStateAction<string>>;
     setSets: React.Dispatch<React.SetStateAction<string>>;
+    sets: string
+    intervalPerSetTrain: string
+    
 };
 
 "use client";
@@ -18,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function HomePage({ setIntervalPerSetTrain, setSets, exercises, setCurrentState, reps, thresholds, setReps, setStartRep, exercise }: MyComponentProps) {
+export default function HomePage({ intervalPerSetTrain, setIntervalPerSetTrain, setSets, sets, exercises, setCurrentState, reps, thresholds, setReps, setStartRep, exercise }: MyComponentProps) {
   const [selectedCard, setSelectedCard] = useState("");
   const [repsPerSet, setRepsPerSet] = useState(0);
   const [numSets, setNumSets] = useState(0);
@@ -60,20 +63,20 @@ export default function HomePage({ setIntervalPerSetTrain, setSets, exercises, s
               <Input
                 id="reps"
                 type="number"
-                value={repsPerSet}
+                value={reps}
                 onChange={(e) => setReps(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="sets">Number of sets</Label>
-              <Input id="sets" type="number" value={numSets} onChange={(e) => setSets(e.target.value)} />
+              <Input id="sets" type="number" value={sets} onChange={(e) => setSets(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="interval">Interval (seconds)</Label>
               <Input
                 id="interval"
                 type="number"
-                value={setInterval}
+                value={intervalPerSetTrain}
                 onChange={(e) => setIntervalPerSetTrain(e.target.value)}
               />
             </div>
@@ -90,7 +93,7 @@ export default function HomePage({ setIntervalPerSetTrain, setSets, exercises, s
           <PlusIcon className="w-5 h-5 text-white" />
         </Button>
       </div>
-      <Button className="mt-24" onClick={() => setCurrentState('train')}>Next</Button>
+      <Button className="mt-24" onClick={() => setCurrentState('execute')}>Next</Button>
     </main>
   );
 }

@@ -14,6 +14,7 @@ import LoadingPage from "./components/LoadingPage";
 import { ElbowDataList, SquatData } from "@/utils/types";
 import { saveTrainingData } from "@/utils/savetrainingdata";
 import HomePage from "./components/HomePage";
+import AudioPlayer from "./components/AudioPlayer";
 
 
 export default function Home() {
@@ -36,11 +37,16 @@ export default function Home() {
 
 
   const fetchThresholdText = async () => {
+    console.log("Does fetch run")
     try {
       const response = await fetch('http://127.0.0.1:5002/');
+      console.log("respos", response.text)
       if (response.ok) {
         const data = await response.json();
+        console.log("Data from file", data.text)
         const parsedData: ElbowDataList[] = JSON.parse(data.text)
+        console.log("Data from parsed", parsedData)
+
         setThresholds(parsedData);
       } else {
         console.error('Failed to fetch threshold text');
@@ -49,6 +55,10 @@ export default function Home() {
       console.error('Error:', error);
     }
   };
+
+  useEffect(() => {
+    console.log("This is a threshold", thresholds);
+  }, [thresholds]);
 
 
   const renderComponent = () => {
@@ -65,7 +75,7 @@ export default function Home() {
         setCurrentState('home')
         return 
       case 'home':
-        return <HomePage setSets={setSets} setIntervalPerSetTrain={setIntervalPerSetTrain} exercises={exercises} setCurrentState={setCurrentState} reps={reps} setReps={setReps} setStartRep={setStartRep} exercise={exercise} thresholds={thresholds}/>
+        return <HomePage intervalPerSetTrain={intervalPerSetTrain} sets={sets} setSets={setSets} setIntervalPerSetTrain={setIntervalPerSetTrain} exercises={exercises} setCurrentState={setCurrentState} reps={reps} setReps={setReps} setStartRep={setStartRep} exercise={exercise} thresholds={thresholds}/>
         // return <CreateExercise setCurrentState={setCurrentState} setExercise={setExercise} setReps={setReps} setStartRep={setStartRep} setIntervals={setIntervalsExecute}/>
       case 'train':
         return <TrainExercise exercise={exercise} trainingData={trainingData} setTrainingData={setTrainingData} reps={reps} setReps={setReps} startRep={startRep} intervalPerSetTrain={intervalPerSetTrain} intervalBetweenSetsTrain={intervalBetweenSetsTrain} setCurrentState={setCurrentState}/>;
@@ -80,9 +90,11 @@ export default function Home() {
         //Call a function that finds them min max threshold and passes into execureexercises
         fetchThresholdText()
         console.log("These are the thresholds", thresholds)
-        return <ExecuteExercise intervalPerSetTrain={intervalPerSetTrain} reps={reps} sets={sets}/>;
-      case 'summary':
-        return <ExerciseSummary />;
+        return <ExecuteExercise setCurrentState={setCurrentState} thresholds={thresholds} intervalPerSetTrain={intervalPerSetTrain} reps={reps} sets={sets}/>;
+      // case 'summary':
+      //   return <ExerciseSummary />;
+      case 'audio':
+        return <AudioPlayer />
       default:
         return
     }

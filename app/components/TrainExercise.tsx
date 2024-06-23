@@ -220,7 +220,7 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             />
           </div>
           <div>
-            <h1>{Number(reps) == Number(startRep) ? "Align yourself, this is a trial" : `This is start rep ${Number(startRep) - Number(reps)} rep`}</h1>
+            <h1>{Number(reps) == Number(startRep) ? "Align yourself, this is a trial" : `This is start rep ${Number(startRep) - Number(reps)}`}</h1>
         </div>
       </div>
       );
