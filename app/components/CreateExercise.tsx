@@ -5,7 +5,7 @@
  */
 "use client"
 
-import { JSX, SVGProps, useState } from "react"
+import { JSX, SetStateAction, SVGProps, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -16,10 +16,21 @@ type MyComponentProps = {
   setExercise: React.Dispatch<React.SetStateAction<string>>;
   setReps: React.Dispatch<React.SetStateAction<string>>;
   setIntervals: React.Dispatch<React.SetStateAction<string>>;
+  setStartRep: React.Dispatch<React.SetStateAction<string>>;
 };
 
-export default function CreateExercise({ setCurrentState, setExercise, setReps, setIntervals } : MyComponentProps) {
+
+export default function CreateExercise({ setCurrentState, setExercise, setReps, setIntervals, setStartRep } : MyComponentProps) {
+
+
+
   const [selectedExercise, setSelectedExercise] = useState("Select Exercise")
+  function handleRep(event: { target: { value: SetStateAction<string> } }) {
+    setReps(event.target.value)
+    setStartRep(event.target.value)
+  }
+
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="bg-background px-4 md:px-6 h-14 flex items-center justify-between shadow">
@@ -63,7 +74,7 @@ export default function CreateExercise({ setCurrentState, setExercise, setReps, 
               </DropdownMenu>
             </div>
             <div className="flex w-full items-center space-x-2">
-              <Input type="number" placeholder="Reps per interval" onChange={(event) => setReps(event.target.value)}/>
+              <Input type="number" placeholder="Reps per interval" onChange={handleRep}/>
             </div>
             <div className="flex w-full items-center space-x-2">
               <Input type="number" placeholder="Number of intervals" onChange={(event) => setIntervals(event.target.value)}/>

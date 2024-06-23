@@ -1,13 +1,19 @@
 'use client'
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import { drawConnectors, drawLandmarks, NormalizedLandmark } from '@mediapipe/drawing_utils';
-import { bodyPartNames } from '@/utils/types';
-import { calculateAngle, calculateSquatAngle } from '@/utils/calculateangle';
+import { bodyPartNames, SquatData } from '@/utils/types';
+import { calculateArmExtension, calculateSquatAngle } from '@/utils/calculateangle';
 interface PoseDetectorProps {
     exercise: string;
     intervalPerSetTrain: string
     intervalBetweenSetsTrain: string
+    reps: string
+    setReps: React.Dispatch<React.SetStateAction<string>>
+    setCurrentState: React.Dispatch<React.SetStateAction<string>>;
+    trainingData: any[];
+    setTrainingData: React.Dispatch<React.SetStateAction<any[]>>;
+    startRep: string
   }
 interface LandmarkStuff {
     name: string;
@@ -16,10 +22,8 @@ interface LandmarkStuff {
     z: number;
     visibility: number;
 }
-export default function PoseDetector({exercise, intervalBetweenSetsTrain, intervalPerSetTrain}: PoseDetectorProps) {
-  const [showContent, setShowContent] = useState(false)
-  const [countdown, setCountdown] = useState(5);
 
+export default function PoseDetector({exercise, intervalBetweenSetsTrain, intervalPerSetTrain, reps, startRep, setReps, setCurrentState, trainingData, setTrainingData}: PoseDetectorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
@@ -30,25 +34,43 @@ export default function PoseDetector({exercise, intervalBetweenSetsTrain, interv
   const [allLandmarks, setAllLandmarks] = useState<LandmarkStuff[]>();
   //DisplayText can help determine which ones to use
   const [displayText, setDisplayText] = useState<string>("")
+  const [countdown, setCountdown] = useState(Number(intervalPerSetTrain))
+  const [startCountdown, setStartCountdown] = useState(false);
 
+  const [informationText, setInformationText] = useState<string>("")
 
-  //Controls the timer
+  // Effect to start the countdown trigger after 3 seconds
   useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      setStartCountdown(true);
+    }, 3000); // 3-second delay
+
+    return () => clearTimeout(delayTimer);
+  }, []);
+
+  // Countdown logic with the actual countdown delay
+  useEffect(() => {
+    if (!startCountdown) return; // Don't start countdown until the trigger is set
+
     if (countdown > 0) {
-      const timerId = setTimeout(() => {
+      const countdownTimer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
-      return () => clearTimeout(timerId);
+      return () => clearTimeout(countdownTimer);
     } else {
-      setShowContent(true);
+      // Action to perform when countdown hits 0
+      console.log('Countdown completed.');
+      setCurrentState('loadingpagetraining'); // Assuming this function changes some state
     }
-  }, [countdown]);
-
+  }, [countdown, startCountdown]);
 
   useEffect(() => {
     if (exercise === "Squat") {
         setIncludedLandmarks([11, 12, 23, 24, 26, 25, 28, 27])
+    } else if (exercise === "Arm Extension") {
+      setIncludedLandmarks([15, 13, 11, 12, 14, 16, 23, 24])
     }
+
     ///Include more examples for different exercises
     const getVideo = async () => {
       try {
@@ -82,20 +104,9 @@ export default function PoseDetector({exercise, intervalBetweenSetsTrain, interv
       initializePoseLandmarker();
     }
   }, [videoObtained]);
-  //Here is where the poseLandmarsk are available
 
-  interface SquatData {
-    'angleHip': number,
-    'angleKnee': number,
-}
-
-
-const [squatAngleData, setSquatAngleData] = useState<SquatData[]>([]);
-
-  //This is focused on drawing on screen. Drawing on screen doesn't run per frame
   useEffect(() => {
-    console.log('Pose Landmarker', poseLandmarker)
-    console.log('Video Ref', videoRef.current)
+
     if (poseLandmarker && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -104,12 +115,7 @@ const [squatAngleData, setSquatAngleData] = useState<SquatData[]>([]);
       const renderLoop = async function () {
         if (video.currentTime !== lastVideoTime) {
           const poseLandmarkerResult = await poseLandmarker.detectForVideo(video, performance.now());
-      
-          // if (exercise == "Squat") {
-          //   calculateSquatAngle(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, squatAngleData, setSquatAngleData)
-          // }
-        
-          //Calling function to draw on the screen
+
           drawOnVideoFeed(poseLandmarkerResult, ctx!, video);
           lastVideoTime = video.currentTime;
         }
@@ -119,41 +125,54 @@ const [squatAngleData, setSquatAngleData] = useState<SquatData[]>([]);
     }
   }, [poseLandmarker, videoRef.current]);
 
-  //Calculating the angle. This will run per frame
+
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    // This interval will run once and set up a timer that ticks every 100ms
+    const intervalId = setInterval(() => {
+      setTimer(prevTimer => prevTimer + 1);
+    }, 100);
+
+    // Clear the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  ////
   useEffect(() => {
     async function angle() {
-      
-      if (poseLandmarker && videoRef.current) {
+          if (poseLandmarker && videoRef.current) {
+            const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
+            if (exercise == "Squat" && reps != "0") {
+              const currPose = calculateSquatAngle(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+              if (currPose) {
+                setTrainingData([...trainingData, currPose]);
 
-        const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
-      
-        if (exercise == "Squat") {
-          calculateSquatAngle(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, squatAngleData, setSquatAngleData)
+              }
+            } else if (exercise == "Arm Extension" && reps != "0") {
+              const currPose = calculateArmExtension(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+              if (currPose) {
+                setTrainingData([...trainingData, currPose]);
+            }
+          }
         }
-        //Add some else ifs here for different exercises
       }
-
+    if (Number(reps) >= 0 && Number(reps) < Number(startRep)) {
+      angle()
     }
-    angle()
+    
   }, [videoRef.current?.currentTime])
 
 
+  useEffect(() => {
+    if (reps ==  "0") {
+      setCurrentState('savetrainingdata')
+    }
+  }, [reps])
+
+
 function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement,  ) {
-    //This is selecting only specific landamrks
-    // const temporaryLandmarks: LandmarkStuff[] = [];
     if (results.landmarks[0]) {
-      // for (let i = 0; i < results.landmarks[0].length; i++) {
-        // const current = {
-        //     name: bodyPartNames[i],
-        //     x: results.landmarks[0][i].x,
-        //     y: results.landmarks[0][i].y,
-        //     z: results.landmarks[0][i].z,
-        //     visibility: results.landmarks[0][i].visibility
-        // }
-          // temporaryLandmarks.push(current)
-      // }
-      // setAllLandmarks(temporaryLandmarks)
-      // results.landmarks[0]
       if (!results || !ctx || !canvasRef.current) return;
       ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
       drawConnectors(ctx, results.landmarks[0], [
@@ -163,7 +182,6 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
       if (results.landmarks[0]) {
           const filteredLandmarks = results.landmarks[0].filter((_, index) => includedLandmarks.includes(index))
           drawLandmarks(ctx, filteredLandmarks, { color: 'green', radius: 1 });
-          // console.log("These are the results", filteredLandmarks)
       }
     }
     
@@ -177,18 +195,11 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
         }
     };
 
-    if (!showContent) {
-      return (
-        <div className="flex min-h-screen items-center justify-center">
-          <h1>{countdown}</h1>
-        </div>
-      );
-    }
+    
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-between p-24">
           <div className={`relative w-[${dimensions.width}px] h-[${dimensions.height}px] overflow-hidden`}>
-          
           <video
             ref={videoRef}
             className="top-0 left-0 w-full h-full z-10"
@@ -209,9 +220,9 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             />
           </div>
           <div>
-          <h1>Now we are here!</h1>
-          <h1>{displayText}</h1>
+            <h1>{Number(reps) == Number(startRep) ? "Align yourself, this is a trial" : `This is start rep ${Number(startRep) - Number(reps)} rep`}</h1>
         </div>
       </div>
       );
 };
+

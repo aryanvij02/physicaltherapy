@@ -80,3 +80,10 @@ export const exercises: Record<string, Exercise> = {
     significantBodyParts: [11, 13, 15, 12, 14, 16] // left shoulder, left elbow, left wrist, right shoulder, right elbow, right wrist
   },
 };
+
+
+export interface SquatData {
+  'rep': string,
+  'angleHip': number,
+  'angleKnee': number,
+}

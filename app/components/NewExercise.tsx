@@ -4,7 +4,7 @@
  * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
  */
 import { Button } from "@/components/ui/button"
-import { JSX, SVGProps, useState } from "react"
+import { JSX, SetStateAction, SVGProps, useState } from "react"
 import Link from "next/link"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,23 @@ import { Textarea } from "@/components/ui/textarea"
 
 type MyComponentProps = {
     setCurrentState: React.Dispatch<React.SetStateAction<string>>;
+    setReps: React.Dispatch<React.SetStateAction<string>>;
+    setIntervalPerSetTrain: React.Dispatch<React.SetStateAction<string>>;
+    setIntervalBetweenSetsTrain: React.Dispatch<React.SetStateAction<string>>;
+    setStartRep: React.Dispatch<React.SetStateAction<string>>;
+    setExercise: React.Dispatch<React.SetStateAction<string>>;
+    exercise: string
+
   };
 
-export default function NewExercise({setCurrentState}: MyComponentProps) {
+export default function NewExercise({setExercise, exercise, setCurrentState, setReps, setIntervalPerSetTrain, setIntervalBetweenSetsTrain, setStartRep}: MyComponentProps) {
+
+    function handleRep(event: { target: { value: SetStateAction<string> } }) {
+        setReps(event.target.value)
+        setStartRep(event.target.value)
+      }
+    
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="bg-background px-4 md:px-6 h-14 flex items-center justify-between shadow">
@@ -34,10 +48,28 @@ export default function NewExercise({setCurrentState}: MyComponentProps) {
         <p className="mb-5 text-gray-500">Get ready to train your own personalized exercise!</p>
         <p className="mb-5 text-gray-800">You will be recording each ideal rep individually. Please select the time interval and number of reps below.</p>
         <div className="space-y-4">
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" placeholder="Enter exercise name" />
-          </div>
+          </div> */}
+          <div className="relative">
+              <label htmlFor="exercise" className="block text-sm font-medium text-muted-foreground mb-2">
+                Exercise
+              </label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="justify-between w-full">
+                    <span>{exercise}</span>
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onSelect={() => setExercise("Squats")}>Squats</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setExercise("Arm Extension")}>Arm Extension</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setExercise("Lean Forward")}>Lean forward</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" placeholder="Enter exercise description" className="min-h-[100px]" />
@@ -48,15 +80,15 @@ export default function NewExercise({setCurrentState}: MyComponentProps) {
           </div>
           <div className="space-y-2">
             <Label >Number of Reps</Label>
-            <Input id="reps" placeholder="Enter reps" />
+            <Input id="reps" placeholder="Enter reps" onChange={handleRep}/>
           </div>
           <div className="space-y-2">
             <Label >Interval For Each Rep</Label>
-            <Input id="interval-rep" placeholder="Interval for each rep" />
+            <Input id="interval-rep" placeholder="Interval for each rep" onChange={(event) => {setIntervalPerSetTrain(event.target.value)}}/>
           </div>
           <div className="space-y-2">
             <Label >Interval Between Reps</Label>
-            <Input id="interval" placeholder="Interval between reps" />
+            <Input id="interval" placeholder="Interval between reps" onChange={(event) => {setIntervalBetweenSetsTrain(event.target.value)}}/>
           </div>
           <Button onClick={() => setCurrentState('train')}>Record new exercise</Button>
         </div>
@@ -104,3 +136,23 @@ function MountainIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) 
     </svg>
   )
 }
+
+function ChevronDownIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+    return (
+      <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    )
+  }
+  
