@@ -81,9 +81,23 @@ export const exercises: Record<string, Exercise> = {
   },
 };
 
-
 export interface SquatData {
   'rep': string,
   'angleHip': number,
   'angleKnee': number,
+}
+
+export interface ElbowDataList {
+  [key: string]: {
+      leftElbow: {
+          min: number;
+          max: number;
+          average: number;
+      };
+      rightElbow: {
+          min: number;
+          max: number;
+          average: number;
+      };
+  };
 }

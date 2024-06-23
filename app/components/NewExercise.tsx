@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { exercises } from "@/utils/types"
 
 type MyComponentProps = {
     setCurrentState: React.Dispatch<React.SetStateAction<string>>;
@@ -19,15 +20,21 @@ type MyComponentProps = {
     setStartRep: React.Dispatch<React.SetStateAction<string>>;
     setExercise: React.Dispatch<React.SetStateAction<string>>;
     exercise: string
-
+    setExercises: React.Dispatch<React.SetStateAction<string[]>>;
+    exercises: string[]
   };
 
-export default function NewExercise({setExercise, exercise, setCurrentState, setReps, setIntervalPerSetTrain, setIntervalBetweenSetsTrain, setStartRep}: MyComponentProps) {
+export default function NewExercise({setExercises, exercises, setExercise, exercise, setCurrentState, setReps, setIntervalPerSetTrain, setIntervalBetweenSetsTrain, setStartRep}: MyComponentProps) {
 
     function handleRep(event: { target: { value: SetStateAction<string> } }) {
         setReps(event.target.value)
         setStartRep(event.target.value)
       }
+
+    function handleSelectArm(event: any) {
+        setExercise("Arm Extension")
+        setExercises([...exercises, "Arm Extension"])
+    }
     
 
   return (
@@ -65,7 +72,7 @@ export default function NewExercise({setExercise, exercise, setCurrentState, set
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onSelect={() => setExercise("Squats")}>Squats</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setExercise("Arm Extension")}>Arm Extension</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleSelectArm}>Arm Extension</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setExercise("Lean Forward")}>Lean forward</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

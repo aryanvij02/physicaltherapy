@@ -1,13 +1,14 @@
 'use client'
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import { drawConnectors, drawLandmarks, NormalizedLandmark } from '@mediapipe/drawing_utils';
-import { bodyPartNames } from '@/utils/types';
-
+import { bodyPartNames, SquatData } from '@/utils/types';
+import { calculateArmExtension, calculateSquatAngle } from '@/utils/calculateangle';
 interface PoseDetectorProps {
-    exercise: string;
+    intervalPerSetTrain: string
+    reps: string
+    sets: string
   }
-
 interface LandmarkStuff {
     name: string;
     x: number;
@@ -16,22 +17,55 @@ interface LandmarkStuff {
     visibility: number;
 }
 
-export default function PoseDetector(props: PoseDetectorProps) {
+export default function PoseDetector({intervalPerSetTrain, reps, sets}: PoseDetectorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [videoObtained, setVideoObtained] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 700, height: 1000 }); // Default dimensions
+  //includedLandmarks decides which landmarks to use
   const [includedLandmarks, setIncludedLandmarks] = useState<number[]>([])
   const [allLandmarks, setAllLandmarks] = useState<LandmarkStuff[]>();
-//   bodyParts
+  //DisplayText can help determine which ones to use
+  const [displayText, setDisplayText] = useState<string>("")
+  const [countdown, setCountdown] = useState(Number(intervalPerSetTrain))
+  const [startCountdown, setStartCountdown] = useState(false);
+
+  const [informationText, setInformationText] = useState<string>("")
+
+  // Effect to start the countdown trigger after 3 seconds
+  useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      setStartCountdown(true);
+    }, 3000); // 3-second delay
+
+    return () => clearTimeout(delayTimer);
+  }, []);
+
+  // Countdown logic with the actual countdown delay
+  useEffect(() => {
+    if (!startCountdown) return; // Don't start countdown until the trigger is set
+
+    if (countdown > 0) {
+      const countdownTimer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(countdownTimer);
+    } else {
+      // Action to perform when countdown hits 0
+      console.log('Countdown completed.');
+      setCurrentState('summary'); // Assuming this function changes some state
+    }
+  }, [countdown, startCountdown]);
 
   useEffect(() => {
-    if (props.exercise === "Squat") {
+    if (exercise === "Squat") {
         setIncludedLandmarks([11, 12, 23, 24, 26, 25, 28, 27])
+    } else if (exercise === "Arm Extension") {
+      setIncludedLandmarks([15, 13, 11, 12, 14, 16, 23, 24])
     }
-    ///Include more examples for different exercises
 
+    ///Include more examples for different exercises
     const getVideo = async () => {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -44,16 +78,14 @@ export default function PoseDetector(props: PoseDetectorProps) {
       }
     };
     getVideo();
-
   }, []);
-
+  
   useEffect(() => {
     if (videoObtained) {
       const initializePoseLandmarker = async () => {
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
         );
-
         const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: "/models/pose_landmarker_full.task",
@@ -61,71 +93,93 @@ export default function PoseDetector(props: PoseDetectorProps) {
           runningMode: "VIDEO",
           numPoses: 1,
         });
-
         setPoseLandmarker(poseLandmarker);
       };
       initializePoseLandmarker();
     }
   }, [videoObtained]);
 
-
   useEffect(() => {
+
     if (poseLandmarker && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas!.getContext('2d');
       let lastVideoTime = -1;
-
       const renderLoop = async function () {
         if (video.currentTime !== lastVideoTime) {
           const poseLandmarkerResult = await poseLandmarker.detectForVideo(video, performance.now());
+
           drawOnVideoFeed(poseLandmarkerResult, ctx!, video);
           lastVideoTime = video.currentTime;
         }
         requestAnimationFrame(renderLoop);
       };
-
       video.play().then(renderLoop).catch(err => console.error('Error playing video:', err));
     }
   }, [poseLandmarker, videoRef.current]);
 
-  useEffect(() => {
 
-  })
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    // This interval will run once and set up a timer that ticks every 100ms
+    const intervalId = setInterval(() => {
+      setTimer(prevTimer => prevTimer + 1);
+    }, 100);
+
+    // Clear the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  ////
+  useEffect(() => {
+    async function angle() {
+          if (poseLandmarker && videoRef.current) {
+            const poseLandmarkerResult = await poseLandmarker.detectForVideo(videoRef.current, performance.now());
+            if (exercise == "Squat" && reps != "0") {
+              const currPose = calculateSquatAngle(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+              if (currPose) {
+                setTrainingData([...trainingData, currPose]);
+
+              }
+            } else if (exercise == "Arm Extension" && reps != "0") {
+              const currPose = calculateArmExtension(poseLandmarkerResult.landmarks[0], setIncludedLandmarks, displayText, setDisplayText, reps)
+              if (currPose) {
+                setTrainingData([...trainingData, currPose]);
+            }
+          }
+        }
+      }
+    if (Number(reps) >= 0 && Number(reps) < Number(startRep)) {
+      angle()
+    }
+    
+  }, [videoRef.current?.currentTime])
+
+
+  useEffect(() => {
+    if (reps ==  "0") {
+      setCurrentState('savetrainingdata')
+    }
+  }, [reps])
 
 
 function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, video: HTMLVideoElement,  ) {
-    const temporaryLandmarks: LandmarkStuff[] = [];
-
-    for (let i = 0; i < results.landmarks[0].length; i++) {
-        const current = {
-            name: bodyPartNames[i],
-            x: results.landmarks[0][i].x,
-            y: results.landmarks[0][i].y,
-            z: results.landmarks[0][i].z,
-            visibility: results.landmarks[0][i].visibility
-        }
-        temporaryLandmarks.push(current)
-    }
-    setAllLandmarks(temporaryLandmarks)
-
-    results.landmarks[0]
-    if (!results || !ctx || !canvasRef.current) return;
-    ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
-    drawConnectors(ctx, results.landmarks[0], [
-    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
-    [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
-    ], {color: 'aqua', lineWidth: 2});
-
     if (results.landmarks[0]) {
-        const filteredLandmarks = results.landmarks[0].filter((_, index) => includedLandmarks.includes(index))
-        
-        drawLandmarks(ctx, filteredLandmarks, { color: 'green', radius: 1 });
-        console.log("These are the results", filteredLandmarks)
-
+      if (!results || !ctx || !canvasRef.current) return;
+      ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+      drawConnectors(ctx, results.landmarks[0], [
+      [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+      [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28], // Torso and legs
+      ], {color: 'aqua', lineWidth: 2});
+      if (results.landmarks[0]) {
+          const filteredLandmarks = results.landmarks[0].filter((_, index) => includedLandmarks.includes(index))
+          drawLandmarks(ctx, filteredLandmarks, { color: 'green', radius: 1 });
+      }
     }
+    
 };
-
     const handleMetadataLoaded = () => {
         if (videoRef.current) {
             setDimensions({
@@ -133,14 +187,17 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             height: videoRef.current.videoHeight
             });
         }
-    };  
-  
+    };
+
+    
 
     return (
-        <div className={`relative w-[${dimensions.width}px] h-[${dimensions.height}px] overflow-hidden`}>
+      <div className="flex min-h-screen flex-col items-center justify-between p-24">
+          <div className={`relative w-[${dimensions.width}px] h-[${dimensions.height}px] overflow-hidden`}>
           <video
             ref={videoRef}
-            className="absolute top-0 left-0 w-full h-full z-10"
+            className="top-0 left-0 w-full h-full z-10"
+            style={{ transform: 'scaleX(-1)' }}
             autoPlay
             playsInline
             onLoadedMetadata={handleMetadataLoaded}
@@ -148,17 +205,18 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             <p className="flex justify-center items-center text-white text-2xl h-full">
               Your browser does not support the video tag.
             </p>
-          </video>
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full z-20"
-          />
+        </video>
+
+            <canvas
+              style={{ transform: 'scaleX(-1)' }}
+              ref={canvasRef}
+              className="absolute top-0 left-0 w-full h-full z-20"
+            />
+          </div>
+          <div>
+            <h1>{Number(reps) == Number(startRep) ? "Align yourself, this is a trial" : `This is start rep ${Number(startRep) - Number(reps)} rep`}</h1>
         </div>
+      </div>
       );
-      
-      
 };
-
-
-
 
