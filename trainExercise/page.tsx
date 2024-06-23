@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import { drawConnectors, drawLandmarks, NormalizedLandmark } from '@mediapipe/drawing_utils';
-import { bodyPartNames } from '@/utils/types';
+import { bodyPartNames, BodyPartNames } from '@/utils/types';
 
 interface PoseDetectorProps {
     exercise: string;

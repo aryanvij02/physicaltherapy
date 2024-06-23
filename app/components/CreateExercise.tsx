@@ -23,7 +23,7 @@ export default function CreateExercise({ setCurrentState, setExercise, setReps, 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="bg-background px-4 md:px-6 h-14 flex items-center justify-between shadow">
-        <Link href="#" className="flex items-center gap-2" prefetch={false}>
+        <Link href="#" className="flex items-center gap-2" prefetch={false} onClick={() => setCurrentState('landing')}>
           <MountainIcon className="h-6 w-6 text-primary" />
           <span className="text-primary font-bold">Physio Assist</span>
         </Link>
@@ -72,7 +72,7 @@ export default function CreateExercise({ setCurrentState, setExercise, setReps, 
         </div>
         <div className="flex justify-between mt-8 mb-20">
           <Button variant="outline">Back</Button>
-          <Button onClick={() => {}}>Next</Button>
+          <Button onClick={() => setCurrentState('train')}>Next</Button>
         </div>
       </main>
     </div>
