@@ -8,9 +8,10 @@ import {FitInView} from "./components/FitInView";
 import TrainExercise from "./components/TrainExercise";
 import ExecuteExercise from "./components/ExecuteExercise";
 import CreateExercise from "./components/CreateExercise";
+import LandingPage from "./components/LandingPage";
 
 export default function Home() {
-  const [currentState, setCurrentState] = useState('home'); // Initial state
+  const [currentState, setCurrentState] = useState('landing'); // Initial state
   const [exercise, setExercise] = useState(''); // Initial exercise
   const [reps, setReps] = useState('0')
   const [intervals, setIntervals] = useState('0')
@@ -25,6 +26,8 @@ export default function Home() {
   const renderComponent = () => {
     console.log(currentState);
     switch (currentState) {
+      case 'landing':
+        return <LandingPage setCurrentState={setCurrentState}/>
       case 'home':
         return <CreateExercise setCurrentState={setCurrentState} setExercise={setExercise} setReps={setReps} setIntervals={setIntervals}/>
       case 'fit':
