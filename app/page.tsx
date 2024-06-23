@@ -7,14 +7,26 @@ import { useEffect, useState } from "react";
 import {FitInView} from "./components/FitInView";
 import TrainExercise from "./components/TrainExercise";
 import ExecuteExercise from "./components/ExecuteExercise";
+import CreateExercise from "./components/CreateExercise";
 
 export default function Home() {
-  const [currentState, setCurrentState] = useState('train'); // Initial state
+  const [currentState, setCurrentState] = useState('home'); // Initial state
+  const [exercise, setExercise] = useState(''); // Initial exercise
+  const [reps, setReps] = useState('0')
+  const [intervals, setIntervals] = useState('0')
   const router = useRouter();
+
+  useEffect(() => {
+    console.log("Intervals", intervals)
+    console.log("Reps", reps)
+  }, [intervals, reps])
+
 
   const renderComponent = () => {
     console.log(currentState);
     switch (currentState) {
+      case 'home':
+        return <CreateExercise setCurrentState={setCurrentState} setExercise={setExercise} setReps={setReps} setIntervals={setIntervals}/>
       case 'fit':
         return <FitInView setCurrentState={setCurrentState}/>;
       case 'train':
@@ -25,7 +37,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <main className="">
       {renderComponent()}
     </main>
   );

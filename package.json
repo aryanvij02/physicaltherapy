@@ -12,9 +12,16 @@
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/pose": "^0.5.1675469404",
     "@mediapipe/tasks-vision": "^0.10.14",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-slot": "^1.1.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.396.0",
     "next": "14.2.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "^20",

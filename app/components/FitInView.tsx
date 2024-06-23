@@ -129,7 +129,7 @@ function drawOnVideoFeed (results: PoseLandmarkerResult, ctx: CanvasRenderingCon
             <div className={`relative w-[${dimensions.width}px] h-[${dimensions.height}px] overflow-hidden`}>
             <video
                 ref={videoRef}
-                className="absolute top-0 left-0 w-full h-full z-10"
+                className="top-0 left-0 w-full h-full z-10"
                 autoPlay
                 playsInline
                 onLoadedMetadata={handleMetadataLoaded}
